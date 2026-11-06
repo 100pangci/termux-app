@@ -97,10 +97,10 @@ jobs:
         shell: bash
         env:
           TERMUX_RELEASE_KEYSTORE_BASE64: ${{ secrets.TERMUX_RELEASE_KEYSTORE_BASE64 }}
-          TERMUX_RELEASE_KEY_ALIAS: ${{ secrets.TERMUX_RELEASE_KEY_ALIAS }}
+          TERMUX_RELEASE_KEY_ALIAS: termux-ywpc-release
           TERMUX_RELEASE_STORE_PASSWORD: ${{ secrets.TERMUX_RELEASE_STORE_PASSWORD }}
         run: |
-          for name in TERMUX_RELEASE_KEYSTORE_BASE64 TERMUX_RELEASE_KEY_ALIAS TERMUX_RELEASE_STORE_PASSWORD; do
+          for name in TERMUX_RELEASE_KEYSTORE_BASE64 TERMUX_RELEASE_STORE_PASSWORD; do
             if [[ -z "${!name:-}" ]]; then
               echo "::error::Missing Actions secret: ${name}"
               exit 1
@@ -120,7 +120,7 @@ jobs:
           TERMUX_BOOTSTRAP_DIR: ${{ github.workspace }}/bootstrap
           TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS: '1'
           TERMUX_RELEASE_KEYSTORE: ${{ runner.temp }}/termux-ywpc-release.p12
-          TERMUX_RELEASE_KEY_ALIAS: ${{ secrets.TERMUX_RELEASE_KEY_ALIAS }}
+          TERMUX_RELEASE_KEY_ALIAS: termux-ywpc-release
           TERMUX_RELEASE_STORE_PASSWORD: ${{ secrets.TERMUX_RELEASE_STORE_PASSWORD }}
           TERMUX_RELEASE_KEY_PASSWORD: ${{ secrets.TERMUX_RELEASE_KEY_PASSWORD }}
         run: ./gradlew --no-daemon :app:assembleRelease
