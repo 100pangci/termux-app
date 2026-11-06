@@ -435,7 +435,7 @@ public class Logger {
         }
 
         if (addDefaultTag && logLevel == DEFAULT_LOG_LEVEL)
-            return logLabel + " (default)";
+            return context.getString(R.string.log_level_default, logLabel);
         else
             return logLabel;
     }

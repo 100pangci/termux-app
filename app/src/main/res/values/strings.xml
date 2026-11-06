@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!DOCTYPE resources [
-    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux.ywpc">
     <!ENTITY TERMUX_APP_NAME "Termux">
     <!ENTITY TERMUX_API_APP_NAME "Termux:API">
     <!ENTITY TERMUX_BOOT_APP_NAME "Termux:Boot">
@@ -57,6 +57,12 @@
     <string name="msg_enabling_terminal_toolbar">Enabling Terminal Toolbar</string>
     <string name="msg_disabling_terminal_toolbar">Disabling Terminal Toolbar</string>
 
+    <string name="msg_null_session">null session</string>
+    <string name="msg_session_exited">%1$s - exited</string>
+
+    <string name="error_extra_keys_load_failed">Could not load the “extra-keys” property: %1$s</string>
+    <string name="error_extra_keys_default_failed">Could not create the default extra keys.</string>
+
 
 
     <!-- Terminal Popup -->
@@ -88,6 +94,7 @@
     <string name="action_open_settings">Settings</string>
 
     <string name="action_report_issue">Report Issue</string>
+    <string name="title_report_issue">%1$s Report Issue</string>
     <string name="msg_generating_report">Generating Report</string>
     <string name="msg_add_termux_debug_info">Add termux debug info to report?</string>
 
@@ -100,6 +107,17 @@
     <string name="notification_action_exit">Exit</string>
     <string name="notification_action_wake_lock">Acquire wakelock</string>
     <string name="notification_action_wake_unlock">Release wakelock</string>
+
+    <plurals name="notification_session_count">
+        <item quantity="one">%d session</item>
+        <item quantity="other">%d sessions</item>
+    </plurals>
+    <plurals name="notification_task_count">
+        <item quantity="one">%d task</item>
+        <item quantity="other">%d tasks</item>
+    </plurals>
+    <string name="notification_text_sessions_and_tasks">%1$s, %2$s</string>
+    <string name="notification_text_wake_lock_held">%1$s (wake lock held)</string>
 
 
 
@@ -126,6 +144,17 @@
     <string name="title_file_received">Save file in ~/downloads/</string>
     <string name="action_file_received_edit">Edit</string>
     <string name="action_file_received_open_directory">Open directory</string>
+    <string name="error_file_receiver_no_content">Send action without content - nothing to save.</string>
+    <string name="error_file_receiver_data_uri_not_passed">Data URI not passed.</string>
+    <string name="error_file_receiver_file_path_invalid">File path from data URI is null, empty or invalid.</string>
+    <string name="error_file_receiver_cannot_open_file">Cannot open file: %1$s.</string>
+    <string name="error_file_receiver_unable_to_receive">Unable to receive any file or URL.</string>
+    <string name="error_file_receiver_unable_to_handle">Unable to handle shared content:\n\n%1$s</string>
+    <string name="error_file_receiver_editor_missing">The following file does not exist:\n$HOME/bin/termux-file-editor\n\nCreate this file as a script or a symlink - it will be called with the received file as only argument.</string>
+    <string name="error_file_receiver_file_name_empty">File name cannot be null or empty.</string>
+    <string name="error_file_receiver_cannot_create_directory">Cannot create directory: %1$s</string>
+    <string name="error_file_receiver_error_saving">Error saving file:\n\n%1$s</string>
+    <string name="error_file_receiver_url_opener_missing">The following file does not exist:\n$HOME/bin/termux-url-opener\n\nCreate this file as a script or a symlink - it will be called with the shared URL as the first argument.</string>
 
 
 

@@ -150,7 +150,7 @@ public class ReportActivity extends AppCompatActivity {
             if (mReportInfo.reportTitle != null)
                 actionBar.setTitle(mReportInfo.reportTitle);
             else
-                actionBar.setTitle(TermuxConstants.TERMUX_APP_NAME + " App Report");
+                actionBar.setTitle(getString(R.string.title_app_report, TermuxConstants.TERMUX_APP_NAME));
         }
 
 

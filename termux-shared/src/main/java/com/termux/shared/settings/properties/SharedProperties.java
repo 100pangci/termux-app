@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.primitives.Primitives;
+import com.termux.shared.R;
 import com.termux.shared.file.FileUtils;
 import com.termux.shared.file.filesystem.FileType;
 import com.termux.shared.logger.Logger;
@@ -245,7 +246,8 @@ public class SharedProperties {
             }
         } catch (Exception e) {
             if (context != null)
-                Toast.makeText(context, "Could not open properties file \"" + propertiesFile.getAbsolutePath() + "\": " + e.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(context, context.getString(R.string.error_open_properties_file,
+                    propertiesFile.getAbsolutePath(), e.getMessage()), Toast.LENGTH_LONG).show();
             Logger.logStackTraceWithMessage(LOG_TAG, "Error loading properties file \"" + propertiesFile.getAbsolutePath() + "\"", e);
             return null;
         }

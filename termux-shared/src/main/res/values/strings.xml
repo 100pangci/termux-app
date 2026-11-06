@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!DOCTYPE resources [
-    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
+    <!ENTITY TERMUX_PACKAGE_NAME "com.termux.ywpc">
     <!ENTITY TERMUX_APP_NAME "Termux">
     <!ENTITY TERMUX_API_APP_NAME "Termux:API">
     <!ENTITY TERMUX_BOOT_APP_NAME "Termux:Boot">
@@ -9,12 +9,21 @@
     <!ENTITY TERMUX_STYLING_APP_NAME "Termux:Styling">
     <!ENTITY TERMUX_TASKER_APP_NAME "Termux:Tasker">
     <!ENTITY TERMUX_WIDGET_APP_NAME "Termux:Widget">
-    <!ENTITY TERMUX_PREFIX_DIR_PATH "/data/data/com.termux/files/usr">
+    <!ENTITY TERMUX_PREFIX_DIR_PATH "/data/data/com.termux.ywpc/files/usr">
     ]>
 
 <resources>
 
     <string name="msg_directory_absolute_path">%1$s Directory Absolute Path: \"%2$s\"</string>
+
+    <!-- TextIOActivity -->
+    <string name="title_text_input">Text Input</string>
+
+    <!-- ReportActivity -->
+    <string name="title_app_report">%1$s App Report</string>
+
+    <!-- SharedProperties -->
+    <string name="error_open_properties_file">Could not open properties file \"%1$s\": %2$s</string>
 
 
 
@@ -133,6 +142,7 @@
     <string name="log_level_debug">Debug</string>
     <string name="log_level_verbose">Verbose</string>
     <string name="log_level_unknown">*Unknown*</string>
+    <string name="log_level_default">%1$s (default)</string>
     <string name="log_level_value">Logcat log level set to \"%1$s\"</string>
 
 </resources>

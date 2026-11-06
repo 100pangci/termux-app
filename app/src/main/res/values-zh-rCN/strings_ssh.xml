@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- SSH 主机管理 -->
+    <string name="action_ssh_hosts">SSH 主机</string>
+    <string name="title_ssh_hosts">SSH 主机</string>
+    <string name="title_ssh_host_add">添加 SSH 主机</string>
+    <string name="title_ssh_host_edit">编辑 SSH 主机</string>
+
+    <string name="ssh_hosts_search_hint">搜索主机</string>
+    <string name="ssh_hosts_empty_title">暂无 SSH 主机</string>
+    <string name="ssh_hosts_empty_message">点击 + 添加主机，或从 ~/.ssh/config 导入。</string>
+    <string name="ssh_hosts_no_results_title">没有匹配的主机</string>
+    <string name="ssh_hosts_no_results_message">请尝试其他搜索词。</string>
+
+    <string name="ssh_host_add_content_description">添加 SSH 主机</string>
+    <string name="ssh_host_more_actions">更多操作</string>
+    <string name="ssh_host_back_content_description">返回</string>
+    <string name="ssh_host_edit_action">编辑</string>
+    <string name="ssh_host_delete_action">删除</string>
+    <string name="ssh_host_alias_badge">SSH 配置</string>
+    <string name="ssh_host_target_alias">别名：%1$s</string>
+
+    <string name="ssh_host_delete_title">删除 SSH 主机？</string>
+    <string name="ssh_host_delete_message">删除“%1$s”？这不会修改你的 ~/.ssh/config。</string>
+
+    <string name="ssh_host_connect_failed">无法启动 SSH 会话。</string>
+    <string name="ssh_host_service_not_ready">终端服务尚未就绪，请重试。</string>
+    <string name="ssh_host_openssh_missing_title">未安装 OpenSSH</string>
+    <string name="ssh_host_openssh_missing_message">请先在 Termux 中安装 OpenSSH：\n\npkg install openssh\n\n然后再次点击该主机。</string>
+
+    <string name="ssh_host_import_action">从 ~/.ssh/config 导入</string>
+    <string name="ssh_host_import_title">OpenSSH 配置别名</string>
+    <string name="ssh_host_import_choose">选择别名</string>
+    <string name="ssh_host_import_empty">在 ~/.ssh/config 中未找到具体的主机别名。</string>
+    <string name="ssh_host_import_already_added">该别名已在主机列表中。</string>
+
+    <string name="ssh_host_name_hint">名称</string>
+    <string name="ssh_host_hostname_hint">主机或 IP 地址</string>
+    <string name="ssh_host_hostname_helper">例如：example.com、192.0.2.10、2001:db8::1。设置别名时此项会被忽略。</string>
+    <string name="ssh_host_port_hint">端口</string>
+    <string name="ssh_host_port_helper">留空时使用 OpenSSH 配置的端口；没有配置时默认为 22。</string>
+    <string name="ssh_host_username_hint">用户名</string>
+    <string name="ssh_host_username_helper">留空时使用 SSH 配置或远端的默认值。</string>
+    <string name="ssh_host_identity_file_hint">私钥路径</string>
+    <string name="ssh_host_identity_file_helper">可选，例如 ~/.ssh/id_ed25519。应用只保存路径，不保存私钥内容。</string>
+    <string name="ssh_host_config_alias_hint">OpenSSH 配置别名</string>
+    <string name="ssh_host_config_alias_helper">可选。优先于主机字段。Include、通配符和配置优先级由 OpenSSH 解析。</string>
+    <string name="ssh_host_notes_hint">备注</string>
+    <string name="ssh_host_save_action">保存</string>
+    <string name="ssh_host_edit_security_note">本应用不会保存密码、私钥口令或私钥内容。认证和主机密钥验证均由 OpenSSH 完成。</string>
+
+    <string name="ssh_host_error_name_required">请输入名称。</string>
+    <string name="ssh_host_error_name_invalid">名称包含无效字符。</string>
+    <string name="ssh_host_error_destination_required">请输入主机地址或 OpenSSH 配置别名。</string>
+    <string name="ssh_host_error_host_invalid">主机地址包含无效字符。</string>
+    <string name="ssh_host_error_alias_invalid">别名必须是单个词，不能包含空格、控制字符或 shell 分隔符，也不能以“-”开头。</string>
+    <string name="ssh_host_error_port_invalid">端口必须在 1 到 65535 之间。</string>
+    <string name="ssh_host_error_username_invalid">用户名包含无效字符。</string>
+    <string name="ssh_host_error_identity_file_invalid">密钥路径包含无效字符。</string>
+    <string name="ssh_host_error_save_failed">无法保存主机。</string>
+    <string name="ssh_host_not_found">找不到已保存的主机。</string>
+
+</resources>

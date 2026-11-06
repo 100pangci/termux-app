@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- SSH host management -->
+    <string name="action_ssh_hosts">SSH Hosts</string>
+    <string name="title_ssh_hosts">SSH Hosts</string>
+    <string name="title_ssh_host_add">Add SSH host</string>
+    <string name="title_ssh_host_edit">Edit SSH host</string>
+
+    <string name="ssh_hosts_search_hint">Search hosts</string>
+    <string name="ssh_hosts_empty_title">No SSH hosts</string>
+    <string name="ssh_hosts_empty_message">Tap + to add a host, or import one from ~/.ssh/config.</string>
+    <string name="ssh_hosts_no_results_title">No matching hosts</string>
+    <string name="ssh_hosts_no_results_message">Try a different search.</string>
+
+    <string name="ssh_host_add_content_description">Add SSH host</string>
+    <string name="ssh_host_more_actions">More actions</string>
+    <string name="ssh_host_back_content_description">Back</string>
+    <string name="ssh_host_edit_action">Edit</string>
+    <string name="ssh_host_delete_action">Delete</string>
+    <string name="ssh_host_alias_badge">SSH config</string>
+    <string name="ssh_host_target_alias">Alias: %1$s</string>
+
+    <string name="ssh_host_delete_title">Delete SSH host?</string>
+    <string name="ssh_host_delete_message">Delete “%1$s”? Your ~/.ssh/config will not be changed.</string>
+
+    <string name="ssh_host_connect_failed">Could not start the SSH session.</string>
+    <string name="ssh_host_service_not_ready">Terminal service is not ready. Try again.</string>
+    <string name="ssh_host_openssh_missing_title">OpenSSH is not installed</string>
+    <string name="ssh_host_openssh_missing_message">Install OpenSSH in Termux first:\n\npkg install openssh\n\nThen tap the host again.</string>
+
+    <string name="ssh_host_import_action">Import from ~/.ssh/config</string>
+    <string name="ssh_host_import_title">OpenSSH config aliases</string>
+    <string name="ssh_host_import_choose">Choose an alias</string>
+    <string name="ssh_host_import_empty">No concrete host aliases were found in ~/.ssh/config.</string>
+    <string name="ssh_host_import_already_added">This alias is already in your host list.</string>
+
+    <string name="ssh_host_name_hint">Name</string>
+    <string name="ssh_host_hostname_hint">Host or IP address</string>
+    <string name="ssh_host_hostname_helper">Examples: example.com, 192.0.2.10, 2001:db8::1. Ignored when an alias is set.</string>
+    <string name="ssh_host_port_hint">Port</string>
+    <string name="ssh_host_port_helper">Leave blank to use the OpenSSH configured port, or 22 by default.</string>
+    <string name="ssh_host_username_hint">Username</string>
+    <string name="ssh_host_username_helper">Leave blank to use the SSH config or remote default.</string>
+    <string name="ssh_host_identity_file_hint">Private key path</string>
+    <string name="ssh_host_identity_file_helper">Optional. Example: ~/.ssh/id_ed25519. Only the path is saved.</string>
+    <string name="ssh_host_config_alias_hint">OpenSSH config alias</string>
+    <string name="ssh_host_config_alias_helper">Optional. Takes precedence over the host field. OpenSSH resolves Include, wildcards and precedence.</string>
+    <string name="ssh_host_notes_hint">Notes</string>
+    <string name="ssh_host_save_action">Save</string>
+    <string name="ssh_host_edit_security_note">Passwords, passphrases and private keys are never stored by this app. OpenSSH handles authentication and host key verification.</string>
+
+    <string name="ssh_host_error_name_required">Enter a name.</string>
+    <string name="ssh_host_error_name_invalid">Name contains invalid characters.</string>
+    <string name="ssh_host_error_destination_required">Enter a host or an OpenSSH config alias.</string>
+    <string name="ssh_host_error_host_invalid">Host contains invalid characters.</string>
+    <string name="ssh_host_error_alias_invalid">Alias must be a single token without spaces, control characters or shell separators, and must not start with “-”.</string>
+    <string name="ssh_host_error_port_invalid">Port must be between 1 and 65535.</string>
+    <string name="ssh_host_error_username_invalid">Username contains invalid characters.</string>
+    <string name="ssh_host_error_identity_file_invalid">Key path contains invalid characters.</string>
+    <string name="ssh_host_error_save_failed">Could not save the host.</string>
+    <string name="ssh_host_not_found">The saved host could not be found.</string>
+
+</resources>

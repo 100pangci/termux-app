@@ -68,7 +68,7 @@ import java.util.List;
 public final class TermuxService extends Service implements AppShell.AppShellClient, TermuxSession.TermuxSessionClient {
 
     /** This service is only bound from inside the same process and never uses IPC. */
-    class LocalBinder extends Binder {
+    public class LocalBinder extends Binder {
         public final TermuxService service = TermuxService.this;
     }
 
@@ -780,7 +780,9 @@ public final class TermuxService extends Service implements AppShell.AppShellCli
 
 
     private Notification buildNotification() {
-        Resources res = getResources();
+        // Service resources do not follow AppCompat per-app locales on API < 33, so use a context
+        // that applies the language selected in Settings.
+        Resources res = AppLanguageUtils.getLocalizedContext(this).getResources();
 
         // Set pending intent to be launched when notification is clicked
         Intent notificationIntent = TermuxActivity.newInstance(this);
@@ -790,13 +792,18 @@ public final class TermuxService extends Service implements AppShell.AppShellCli
         // Set notification text
         int sessionCount = getTermuxSessionsSize();
         int taskCount = mShellManager.mTermuxTasks.size();
-        String notificationText = sessionCount + " session" + (sessionCount == 1 ? "" : "s");
+        String notificationText = res.getQuantityString(
+            R.plurals.notification_session_count, sessionCount, sessionCount);
         if (taskCount > 0) {
-            notificationText += ", " + taskCount + " task" + (taskCount == 1 ? "" : "s");
+            String taskText = res.getQuantityString(
+                R.plurals.notification_task_count, taskCount, taskCount);
+            notificationText = res.getString(
+                R.string.notification_text_sessions_and_tasks, notificationText, taskText);
         }
 
         final boolean wakeLockHeld = mWakeLock != null;
-        if (wakeLockHeld) notificationText += " (wake lock held)";
+        if (wakeLockHeld) notificationText = res.getString(
+            R.string.notification_text_wake_lock_held, notificationText);
 
 
         // Set notification priority

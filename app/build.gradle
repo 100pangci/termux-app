@@ -10,6 +10,18 @@ ext {
     // by replacing $PREFIX since app code is dependant on the variant used to build the APK.
     // Currently supported values are: [ "apt-android-7" "apt-android-5" ]
     packageVariant = System.getenv("TERMUX_PACKAGE_VARIANT") ?: "apt-android-7" // Default: "apt-android-7"
+
+    // Android applicationId of this fork. The Java package/namespace intentionally remains
+    // "com.termux" so Java sources and upstream merges stay unchanged. Termux binaries have
+    // $PREFIX hardcoded, so bootstrap zips must be built for /data/data/<termuxPackageName>/files/usr.
+    termuxPackageName = "com.termux.ywpc"
+    // Must match the "namespace" and TermuxConstants.TERMUX_JAVA_PACKAGE_NAME. Bootstrap tools
+    // need it for component class names, which do not follow the applicationId.
+    termuxJavaPackageName = "com.termux"
+}
+
+def isUpstreamBootstrapAllowed() {
+    return System.getenv("TERMUX_ALLOW_UPSTREAM_BOOTSTRAP") == "1"
 }
 
 android {
@@ -21,6 +33,21 @@ android {
     def apkVersionTag = System.getenv("TERMUX_APK_VERSION_TAG") ?: ""
     def splitAPKsForDebugBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_DEBUG_BUILDS") ?: "1"
     def splitAPKsForReleaseBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS") ?: "0" // F-Droid does not support split APKs #1904
+    def releaseKeystorePath = System.getenv("TERMUX_RELEASE_KEYSTORE")
+    def releaseKeyAlias = System.getenv("TERMUX_RELEASE_KEY_ALIAS")
+    def releaseStorePassword = System.getenv("TERMUX_RELEASE_STORE_PASSWORD")
+    def releaseKeyPassword = System.getenv("TERMUX_RELEASE_KEY_PASSWORD")
+    def releaseSigningRequested = [releaseKeystorePath, releaseKeyAlias, releaseStorePassword,
+        releaseKeyPassword].any { value -> value != null && !value.trim().isEmpty() }
+    def releaseSigningConfigured = releaseKeystorePath != null && !releaseKeystorePath.trim().isEmpty() &&
+        releaseKeyAlias != null && !releaseKeyAlias.trim().isEmpty() &&
+        releaseStorePassword != null && !releaseStorePassword.trim().isEmpty()
+    if (releaseSigningRequested && !releaseSigningConfigured) {
+        throw new GradleException("Set TERMUX_RELEASE_KEYSTORE, TERMUX_RELEASE_KEY_ALIAS and TERMUX_RELEASE_STORE_PASSWORD together to sign release APKs.")
+    }
+    if (releaseSigningConfigured && (releaseKeyPassword == null || releaseKeyPassword.trim().isEmpty())) {
+        releaseKeyPassword = releaseStorePassword
+    }
 
     dependencies {
         implementation "androidx.annotation:annotation:1.9.0"
@@ -41,6 +68,7 @@ android {
     }
 
     defaultConfig {
+        applicationId project.ext.termuxPackageName
         minSdkVersion project.properties.minSdkVersion.toInteger()
         targetSdkVersion project.properties.targetSdkVersion.toInteger()
         versionCode 118
@@ -51,7 +79,7 @@ android {
 
         buildConfigField "String", "TERMUX_PACKAGE_VARIANT", "\"" + project.ext.packageVariant + "\"" // Used by TermuxApplication class
 
-        manifestPlaceholders.TERMUX_PACKAGE_NAME = "com.termux"
+        manifestPlaceholders.TERMUX_PACKAGE_NAME = project.ext.termuxPackageName
         manifestPlaceholders.TERMUX_APP_NAME = "Termux"
         manifestPlaceholders.TERMUX_API_APP_NAME = "Termux:API"
         manifestPlaceholders.TERMUX_BOOT_APP_NAME = "Termux:Boot"
@@ -84,10 +112,19 @@ android {
             storePassword 'xrj45yWGLbsO7W0v'
             keyPassword 'xrj45yWGLbsO7W0v'
         }
+        release {
+            if (releaseSigningConfigured) {
+                storeFile file(releaseKeystorePath)
+                keyAlias releaseKeyAlias
+                storePassword releaseStorePassword
+                keyPassword releaseKeyPassword
+            }
+        }
     }
 
     buildTypes {
         release {
+            if (releaseSigningConfigured) signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources false // Reproducible builds
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -119,6 +156,11 @@ android {
     testOptions {
         unitTests {
             includeAndroidResources = true
+            all {
+                // Robolectric uses a stub unit-test manifest, so expose the source manifest
+                // for the package-name test to verify its placeholders directly.
+                systemProperty "termux.sourceManifest", file("src/main/AndroidManifest.xml").absolutePath
+            }
         }
     }
 
@@ -207,11 +249,303 @@ def downloadBootstrap(String arch, String expectedChecksum, String version) {
     }
 }
 
+def getTermuxPrefixDirPath() {
+    return "/data/data/" + project.ext.termuxPackageName + "/files/usr"
+}
+
+def readZipEntryBytes(java.util.zip.ZipFile zip, String entryName) {
+    def entry = zip.getEntry(entryName)
+    if (entry == null || entry.isDirectory()) return null
+    return readZipEntryBytes(zip, entry)
+}
+
+def readZipEntryBytes(java.util.zip.ZipFile zip, java.util.zip.ZipEntry entry) {
+    return zip.getInputStream(entry).withCloseable { input -> input.bytes }
+}
+
+def getElfClassAndMachine(byte[] data, String entryName) {
+    if (data.length < 20 ||
+        (data[0] & 0xff) != 0x7f || (data[1] & 0xff) != 0x45 ||
+        (data[2] & 0xff) != 0x4c || (data[3] & 0xff) != 0x46) {
+        throw new GradleException("Bootstrap entry \"" + entryName + "\" is not an ELF file; cannot verify its architecture.")
+    }
+    int elfClass = data[4] & 0xff
+    int dataEncoding = data[5] & 0xff
+    if ((elfClass != 1 && elfClass != 2) || dataEncoding != 1) {
+        throw new GradleException("Bootstrap entry \"" + entryName + "\" has an unsupported ELF header; cannot verify its architecture.")
+    }
+    int machine = (data[18] & 0xff) | ((data[19] & 0xff) << 8)
+    return [elfClass: elfClass, machine: machine]
+}
+
+def reportBootstrapVerificationFailure(File file, String arch, List<String> failures) {
+    String details = failures.join("\n  - ")
+    String message = "Bootstrap \"" + file.name + "\" (" + arch + ") failed verification:\n  - " + details
+    if (isUpstreamBootstrapAllowed()) {
+        logger.warn("WARNING: " + message + "\nBuilding anyway because TERMUX_ALLOW_UPSTREAM_BOOTSTRAP=1, but the APK's terminal environment will NOT work.")
+    } else {
+        throw new GradleException(message +
+            "\nBuild a complete bootstrap for \"" + getTermuxPrefixDirPath() + "\" (including bin/bash, bin/login, bin/termux-am-socket and SYMLINKS.txt) and place it at \"app/src/main/cpp/bootstrap-" + arch + ".zip\", or set TERMUX_ALLOW_UPSTREAM_BOOTSTRAP=1 for compile-only verification.")
+    }
+}
+
+def verifyBootstrapPrefix(File file, String arch) {
+    String prefix = getTermuxPrefixDirPath()
+    String expectedShebang = "#!" + prefix + "/bin/sh"
+    String packageName = project.ext.termuxPackageName
+    String defaultPrefix = "/data/data/com.termux/files/"
+
+    // The ELF machine check catches an archive copied to the wrong bootstrap-<arch>.zip
+    // name. bin/login is identical in all four upstream archives, so its shebang alone
+    // cannot detect that mistake.
+    def expectedElf = [
+        aarch64: [elfClass: 2, machine: 183],
+        arm:     [elfClass: 1, machine: 40],
+        i686:    [elfClass: 1, machine: 3],
+        x86_64:  [elfClass: 2, machine: 62],
+    ][arch]
+    if (expectedElf == null) {
+        throw new GradleException("Unknown bootstrap architecture \"" + arch + "\".")
+    }
+
+    def zip = new java.util.zip.ZipFile(file)
+    try {
+        List<String> failures = []
+
+        def loginBytes = readZipEntryBytes(zip, "bin/login")
+        if (loginBytes == null) {
+            failures << "does not contain \"bin/login\"; cannot verify its \$PREFIX"
+        } else {
+            String loginHeader = new String(loginBytes, java.nio.charset.StandardCharsets.UTF_8)
+            int newline = loginHeader.indexOf('\n')
+            String firstLine = newline >= 0 ? loginHeader.substring(0, newline) : loginHeader
+            if (firstLine.endsWith('\r')) firstLine = firstLine.substring(0, firstLine.length() - 1)
+            if (expectedShebang != firstLine) {
+                failures << "bin/login has shebang \"" + firstLine + "\" but package \"" + packageName + "\" requires \"" + expectedShebang + "\""
+            }
+        }
+
+        def bashBytes = readZipEntryBytes(zip, "bin/bash")
+        if (bashBytes == null) {
+            failures << "does not contain \"bin/bash\""
+        } else {
+            try {
+                def elf = getElfClassAndMachine(bashBytes, "bin/bash")
+                if (elf.elfClass != expectedElf.elfClass || elf.machine != expectedElf.machine) {
+                    failures << "bin/bash is ELF class " + elf.elfClass + ", machine " + elf.machine +
+                        " but bootstrap-" + arch + ".zip requires ELF class " + expectedElf.elfClass + ", machine " + expectedElf.machine
+                }
+            } catch (GradleException e) {
+                failures << e.message
+            }
+            String bashText = new String(bashBytes, java.nio.charset.StandardCharsets.ISO_8859_1)
+            if (!bashText.contains(prefix)) {
+                failures << "bin/bash does not reference the configured \$PREFIX \"" + prefix + "\""
+            }
+        }
+
+        // Early return for a known upstream bootstrap: the remaining checks would only
+        // repeat the same prefix mismatch, and the compile-only warning above is enough.
+        if (failures && isUpstreamBootstrapAllowed()) {
+            reportBootstrapVerificationFailure(file, arch, failures)
+            return
+        }
+
+        if (packageName != "com.termux") {
+            if (loginBytes != null) {
+                String loginText = new String(loginBytes, java.nio.charset.StandardCharsets.ISO_8859_1)
+                if (!loginText.contains(prefix)) {
+                    failures << "bin/login does not reference the configured \$PREFIX \"" + prefix + "\""
+                }
+            }
+
+            // Check every file under bin/ for the default upstream prefix. This catches a
+            // bootstrap where only bin/login was rewritten while termux-tools, login scripts
+            // or the shell still target /data/data/com.termux/files.
+            String javaPackageName = project.ext.termuxJavaPackageName
+            String expectedOpenReceiver = javaPackageName + ".app.TermuxOpenReceiver"
+            String expectedService = javaPackageName + ".app.TermuxService"
+            String expectedAmClass = javaPackageName + ".termuxam.Am"
+            String wrongAppClassPrefix = packageName + ".app.Termux"
+            String wrongAmClassPrefix = packageName + ".termuxam."
+            def offenders = []
+            def wrongClassOffenders = []
+            def entries = zip.entries()
+            while (entries.hasMoreElements()) {
+                def entry = entries.nextElement()
+                if (entry.isDirectory() || !entry.name.startsWith("bin/")) continue
+                if (entry.size <= 0 || entry.size > 16L * 1024 * 1024) continue
+                String text = new String(readZipEntryBytes(zip, entry), java.nio.charset.StandardCharsets.ISO_8859_1)
+                if (text.contains(defaultPrefix)) offenders << entry.name
+                if (text.contains(wrongAppClassPrefix) || text.contains(wrongAmClassPrefix)) {
+                    wrongClassOffenders << entry.name
+                }
+            }
+            if (offenders) {
+                def sortedOffenders = offenders.sort()
+                def shownOffenders = sortedOffenders.take(20)
+                String suffix = sortedOffenders.size() > shownOffenders.size() ?
+                    " (and " + (sortedOffenders.size() - shownOffenders.size()) + " more)" : ""
+                failures << "bin/ entries still reference \"" + defaultPrefix + "\": " + shownOffenders.join(", ") + suffix
+            }
+            if (wrongClassOffenders) {
+                failures << "bin/ entries use the applicationId as a Java class prefix (" +
+                    wrongAppClassPrefix + ".* or " + wrongAmClassPrefix + "*): " +
+                    wrongClassOffenders.sort().take(20).join(", ") +
+                    ". termux-tools must use \"" + javaPackageName + "\" for component classes."
+            }
+
+            // termux-tools templates currently substitute a single app package variable into
+            // both the Intent package and the component class name. With a split namespace that
+            // produces e.g. com.termux.ywpc/app.TermuxService, which does not exist. Verify the
+            // generated scripts explicitly so the APK is not built with non-functional tools.
+            def requireInScript = { String entryName, List<String> required ->
+                def scriptBytes = readZipEntryBytes(zip, entryName)
+                if (scriptBytes == null) {
+                    failures << "does not contain \"" + entryName + "\""
+                    return
+                }
+                String text = new String(scriptBytes, java.nio.charset.StandardCharsets.ISO_8859_1)
+                required.each { String needle ->
+                    if (!text.contains(needle)) {
+                        failures << entryName + " does not contain \"" + needle + "\""
+                    }
+                }
+            }
+            requireInScript("bin/termux-open",
+                [packageName + "/" + expectedOpenReceiver])
+            requireInScript("bin/termux-wake-lock",
+                [packageName + "/" + expectedService, packageName + ".service_wake_lock"])
+            requireInScript("bin/termux-wake-unlock",
+                [packageName + "/" + expectedService, packageName + ".service_wake_unlock"])
+            requireInScript("bin/termux-reload-settings", [packageName + ".app.reload_style"])
+            requireInScript("bin/termux-setup-storage", [packageName + ".app.reload_style"])
+            requireInScript("bin/termux-reset", [expectedAmClass])
+
+            String amSocketPath = "/data/data/" + packageName + "/files/apps/" + packageName + "/termux-am/am.sock"
+            def amSocketBytes = readZipEntryBytes(zip, "bin/termux-am-socket")
+            if (amSocketBytes == null) {
+                failures << "does not contain \"bin/termux-am-socket\"; termux-am and RUN_COMMAND will not work"
+            } else if (!new String(amSocketBytes, java.nio.charset.StandardCharsets.ISO_8859_1).contains(amSocketPath)) {
+                failures << "bin/termux-am-socket does not reference the configured socket \"" + amSocketPath + "\""
+            }
+            def termuxAmBytes = readZipEntryBytes(zip, "bin/termux-am")
+            if (termuxAmBytes != null &&
+                !new String(termuxAmBytes, java.nio.charset.StandardCharsets.ISO_8859_1).contains(amSocketPath)) {
+                failures << "bin/termux-am does not reference the configured socket \"" + amSocketPath + "\""
+            }
+
+            def symlinksBytes = readZipEntryBytes(zip, "SYMLINKS.txt")
+            if (symlinksBytes == null) {
+                failures << "does not contain \"SYMLINKS.txt\"; the bootstrap installer cannot create bin/sh"
+            } else {
+                String symlinksText = new String(symlinksBytes, java.nio.charset.StandardCharsets.UTF_8)
+                if (!symlinksText.contains(prefix)) {
+                    failures << "SYMLINKS.txt does not reference the configured \$PREFIX \"" + prefix + "\""
+                }
+                if (symlinksText.contains(defaultPrefix)) {
+                    failures << "SYMLINKS.txt still references \"" + defaultPrefix + "\""
+                }
+                boolean hasShLink = symlinksText.readLines().any { String line ->
+                    int arrow = line.indexOf('←')
+                    if (arrow <= 0) return false
+                    String link = line.substring(arrow + 1).trim()
+                    return link == "./bin/sh" || link == "/bin/sh" || link == "bin/sh"
+                }
+                if (!hasShLink && zip.getEntry("bin/sh") == null) {
+                    failures << "does not create bin/sh (no regular entry and no SYMLINKS.txt link)"
+                }
+            }
+        }
+
+        if (failures) {
+            reportBootstrapVerificationFailure(file, arch, failures)
+        }
+    } finally {
+        zip.close()
+    }
+}
+
+def getCustomBootstrapSourceFile(String arch) {
+    String customDir = System.getenv("TERMUX_BOOTSTRAP_DIR")
+    if (customDir == null || customDir.trim().isEmpty()) return null
+    return new File(customDir.trim(), "bootstrap-" + arch + ".zip")
+}
+
+def ensureBootstrap(String arch, String expectedChecksum, String version) {
+    def isDefaultPackage = project.ext.termuxPackageName == "com.termux"
+    def file = new File(projectDir, "src/main/cpp/bootstrap-" + arch + ".zip")
+    def sourceFile = isDefaultPackage ? null : getCustomBootstrapSourceFile(arch)
+    if (isDefaultPackage) {
+        downloadBootstrap(arch, expectedChecksum, version)
+    } else if (sourceFile != null) {
+        if (!sourceFile.isFile()) {
+            throw new GradleException("TERMUX_BOOTSTRAP_DIR is set to \"" + sourceFile.parentFile + "\" but \"" + sourceFile.name + "\" is missing.")
+        }
+        if (sourceFile.canonicalFile != file.canonicalFile) {
+            boolean needsCopy = !file.exists() ||
+                java.nio.file.Files.mismatch(sourceFile.toPath(), file.toPath()) != -1L
+            if (needsCopy) {
+                file.parentFile.mkdirs()
+                java.nio.file.Files.copy(sourceFile.toPath(), file.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.COPY_ATTRIBUTES)
+            }
+        }
+    } else if (!file.exists()) {
+        if (isUpstreamBootstrapAllowed()) {
+            logger.warn("WARNING: Custom bootstrap for \"" + project.ext.termuxPackageName + "\" is missing for " + arch + "; downloading the upstream bootstrap for compile-only verification.")
+            downloadBootstrap(arch, expectedChecksum, version)
+        } else {
+            throw new GradleException("Missing custom bootstrap \"app/src/main/cpp/bootstrap-" + arch + ".zip\" for package \"" + project.ext.termuxPackageName + "\". A bootstrap built for \"" + getTermuxPrefixDirPath() + "\" is required; upstream bootstraps target /data/data/com.termux/files/usr.")
+        }
+    }
+    verifyBootstrapPrefix(file, arch)
+}
+
+def computeSha256(File file) {
+    def digest = java.security.MessageDigest.getInstance("SHA-256")
+    file.withInputStream { input ->
+        byte[] buffer = new byte[8192]
+        int read
+        while ((read = input.read(buffer)) != -1) digest.update(buffer, 0, read)
+    }
+    return new BigInteger(1, digest.digest()).toString(16).padLeft(64, "0")
+}
+
+/**
+ * .incbin dependency tracking compares mtimes. A zip copied with COPY_ATTRIBUTES (or replaced
+ * with an old timestamp) can be older than an existing termux-bootstrap-zip.o, so make would
+ * skip it even though Gradle detected the content change. Touch the zips only when their
+ * content fingerprint changes, which preserves incremental builds otherwise.
+ */
+def touchBootstrapsIfContentChanged() {
+    def files = ["aarch64", "arm", "i686", "x86_64"].collect {
+        new File(projectDir, "src/main/cpp/bootstrap-" + it + ".zip")
+    }.findAll { it.isFile() }
+    if (files.size() != 4) return
+
+    String fingerprint = files.collect { it.name + "=" + computeSha256(it) }.join("\n")
+    def stamp = new File(buildDir, "termux-bootstrap-inputs.sha256")
+    String previous = stamp.isFile() ? stamp.getText("UTF-8") : ""
+    if (fingerprint != previous) {
+        long now = System.currentTimeMillis()
+        files.each { it.setLastModified(now) }
+        stamp.parentFile.mkdirs()
+        stamp.setText(fingerprint, "UTF-8")
+    }
+}
+
 clean {
     doLast {
-        def tree = fileTree(new File(projectDir, 'src/main/cpp'))
-        tree.include 'bootstrap-*.zip'
-        tree.each { it.delete() }
+        // Downloaded upstream bootstraps for the default package can be fetched again.
+        // Custom-prefix bootstraps are required build inputs that cannot be re-downloaded
+        // (and are ignored by git), so clean must not delete them.
+        if (project.ext.termuxPackageName == "com.termux") {
+            def tree = fileTree(new File(projectDir, 'src/main/cpp'))
+            tree.include 'bootstrap-*.zip'
+            tree.each { it.delete() }
+        }
     }
 }
 
@@ -220,24 +554,46 @@ task downloadBootstraps() {
         def packageVariant = project.ext.packageVariant
         if (packageVariant == "apt-android-7") {
             def version = "2026.02.12-r1" + "%2B" + "apt.android-7"
-            downloadBootstrap("aarch64", "ea2aeba8819e517db711f8c32369e89e7c52cee73e07930ff91185e1ab93f4f3", version)
-            downloadBootstrap("arm", "a38f4d3b2f735f83be2bf54eff463e86dc32a3e2f9f861c1557c4378d249c018", version)
-            downloadBootstrap("i686", "f5bc0b025b9f3b420b5fcaeefc064f888f5f22a0d6fd7090f4aac0c33eb3555b", version)
-            downloadBootstrap("x86_64", "b7fd0f2e3a4de534be3144f9f91acc768630fc463eaf134ab2e64c545e834f7a", version)
+            ensureBootstrap("aarch64", "ea2aeba8819e517db711f8c32369e89e7c52cee73e07930ff91185e1ab93f4f3", version)
+            ensureBootstrap("arm", "a38f4d3b2f735f83be2bf54eff463e86dc32a3e2f9f861c1557c4378d249c018", version)
+            ensureBootstrap("i686", "f5bc0b025b9f3b420b5fcaeefc064f888f5f22a0d6fd7090f4aac0c33eb3555b", version)
+            ensureBootstrap("x86_64", "b7fd0f2e3a4de534be3144f9f91acc768630fc463eaf134ab2e64c545e834f7a", version)
         } else if (packageVariant == "apt-android-5") {
             def version = "2022.04.28-r6" + "+" + packageVariant
-            downloadBootstrap("aarch64", "913609d439415c828c5640be1b0561467e539cb1c7080662decaaca2fb4820e7", version)
-            downloadBootstrap("arm", "26bfb45304c946170db69108e5eb6e3641aad751406ce106c80df80cad2eccf8", version)
-            downloadBootstrap("i686", "46dcfeb5eef67ba765498db9fe4c50dc4690805139aa0dd141a9d8ee0693cd27", version)
-            downloadBootstrap("x86_64", "615b590679ee6cd885b7fd2ff9473c845e920f9b422f790bb158c63fe42b8481", version)
+            ensureBootstrap("aarch64", "913609d439415c828c5640be1b0561467e539cb1c7080662decaaca2fb4820e7", version)
+            ensureBootstrap("arm", "26bfb45304c946170db69108e5eb6e3641aad751406ce106c80df80cad2eccf8", version)
+            ensureBootstrap("i686", "46dcfeb5eef67ba765498db9fe4c50dc4690805139aa0dd141a9d8ee0693cd27", version)
+            ensureBootstrap("x86_64", "615b590679ee6cd885b7fd2ff9473c845e920f9b422f790bb158c63fe42b8481", version)
         } else {
             throw new GradleException("Unsupported TERMUX_PACKAGE_VARIANT \"" + packageVariant + "\"")
         }
+        touchBootstrapsIfContentChanged()
     }
 }
 
 afterEvaluate {
-    android.applicationVariants.all { variant ->
-        variant.javaCompileProvider.get().dependsOn(downloadBootstraps)
+    // Robolectric's unit-test manifest does not contain the app's merged manifest, so expose
+    // the actual manifest placeholder value for TermuxPackageNameTest to compare with the
+    // applicationId. This catches a placeholder that silently diverges from BuildConfig.
+    tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+        systemProperty "termux.manifestPlaceholderPackageName",
+            android.defaultConfig.manifestPlaceholders.TERMUX_PACKAGE_NAME
+    }
+
+    // The bootstraps are consumed by ndk-build (.incbin), not by javac. Unit tests do not
+    // use them, so they must not force a bootstrap download/verification. Declaring the
+    // zips as inputs also makes Gradle rerun ndk-build when a zip is replaced, which in
+    // turn triggers the explicit dependency rule in Android.mk.
+    def bootstrapZips = fileTree(new File(projectDir, 'src/main/cpp')) {
+        include 'bootstrap-*.zip'
+    }
+    tasks.matching { task ->
+        (task.name.startsWith("externalNativeBuild") || task.name.startsWith("buildNdkBuild")) &&
+            !task.name.contains("Clean")
+    }.configureEach { task ->
+        task.dependsOn(downloadBootstraps)
+        task.inputs.files(bootstrapZips)
+            .withPropertyName("bootstrapZips")
+            .withPathSensitivity(org.gradle.api.tasks.PathSensitivity.NAME_ONLY)
     }
 }

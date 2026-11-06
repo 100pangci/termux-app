@@ -42,7 +42,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
     private final TermuxActivity mActivity;
 
-    private static final int MAX_SESSIONS = 8;
+    public static final int MAX_SESSIONS = 8;
 
     private SoundPool mBellSoundPool;
 
@@ -162,7 +162,8 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
             // Show toast for non-current sessions that exit.
             // Verify that session was not removed before we got told about it finishing:
             if (index >= 0)
-                mActivity.showToast(toToastTitle(finishedSession) + " - exited", true);
+                mActivity.showToast(mActivity.getString(
+                    R.string.msg_session_exited, toToastTitle(finishedSession)), true);
         }
 
         if (mActivity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK)) {

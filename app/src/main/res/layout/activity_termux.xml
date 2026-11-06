@@ -59,6 +59,19 @@
                         app:tint="?attr/termuxActivityDrawerImageTint" />
                 </LinearLayout>
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/ssh_hosts_button"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="start|center_vertical"
+                    android:paddingStart="16dp"
+                    android:text="@string/action_ssh_hosts"
+                    app:icon="@drawable/ic_ssh"
+                    app:iconGravity="textStart"
+                    app:iconPadding="8dp"
+                    app:iconTint="?attr/termuxActivityDrawerImageTint" />
+
                 <ListView
                     android:id="@+id/terminal_sessions_list"
                     android:layout_width="match_parent"

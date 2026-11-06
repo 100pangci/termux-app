@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- SSH 主機管理 -->
+    <string name="action_ssh_hosts">SSH 主機</string>
+    <string name="title_ssh_hosts">SSH 主機</string>
+    <string name="title_ssh_host_add">新增 SSH 主機</string>
+    <string name="title_ssh_host_edit">編輯 SSH 主機</string>
+
+    <string name="ssh_hosts_search_hint">搜尋主機</string>
+    <string name="ssh_hosts_empty_title">尚無 SSH 主機</string>
+    <string name="ssh_hosts_empty_message">點選 + 新增主機，或從 ~/.ssh/config 匯入。</string>
+    <string name="ssh_hosts_no_results_title">沒有符合的主機</string>
+    <string name="ssh_hosts_no_results_message">請嘗試其他搜尋關鍵字。</string>
+
+    <string name="ssh_host_add_content_description">新增 SSH 主機</string>
+    <string name="ssh_host_more_actions">更多操作</string>
+    <string name="ssh_host_back_content_description">返回</string>
+    <string name="ssh_host_edit_action">編輯</string>
+    <string name="ssh_host_delete_action">刪除</string>
+    <string name="ssh_host_alias_badge">SSH 設定</string>
+    <string name="ssh_host_target_alias">別名：%1$s</string>
+
+    <string name="ssh_host_delete_title">刪除 SSH 主機？</string>
+    <string name="ssh_host_delete_message">刪除「%1$s」？這不會修改你的 ~/.ssh/config。</string>
+
+    <string name="ssh_host_connect_failed">無法啟動 SSH 工作階段。</string>
+    <string name="ssh_host_service_not_ready">終端機服務尚未就緒，請重試。</string>
+    <string name="ssh_host_openssh_missing_title">尚未安裝 OpenSSH</string>
+    <string name="ssh_host_openssh_missing_message">請先在 Termux 中安裝 OpenSSH：\n\npkg install openssh\n\n然後再次點選該主機。</string>
+
+    <string name="ssh_host_import_action">從 ~/.ssh/config 匯入</string>
+    <string name="ssh_host_import_title">OpenSSH 設定別名</string>
+    <string name="ssh_host_import_choose">選擇別名</string>
+    <string name="ssh_host_import_empty">在 ~/.ssh/config 中找不到具體的主機別名。</string>
+    <string name="ssh_host_import_already_added">此別名已在主機清單中。</string>
+
+    <string name="ssh_host_name_hint">名稱</string>
+    <string name="ssh_host_hostname_hint">主機或 IP 位址</string>
+    <string name="ssh_host_hostname_helper">例如：example.com、192.0.2.10、2001:db8::1。設定別名時此欄位會被忽略。</string>
+    <string name="ssh_host_port_hint">連接埠</string>
+    <string name="ssh_host_port_helper">留空時使用 OpenSSH 設定的連接埠；未設定時預設為 22。</string>
+    <string name="ssh_host_username_hint">使用者名稱</string>
+    <string name="ssh_host_username_helper">留空時使用 SSH 設定或遠端預設值。</string>
+    <string name="ssh_host_identity_file_hint">私鑰路徑</string>
+    <string name="ssh_host_identity_file_helper">選填，例如 ~/.ssh/id_ed25519。應用程式只儲存路徑，不儲存私鑰內容。</string>
+    <string name="ssh_host_config_alias_hint">OpenSSH 設定別名</string>
+    <string name="ssh_host_config_alias_helper">選填。優先於主機欄位。Include、萬用字元與設定優先順序由 OpenSSH 解析。</string>
+    <string name="ssh_host_notes_hint">備註</string>
+    <string name="ssh_host_save_action">儲存</string>
+    <string name="ssh_host_edit_security_note">本應用程式不會儲存密碼、私鑰口令或私鑰內容。認證與主機金鑰驗證均由 OpenSSH 完成。</string>
+
+    <string name="ssh_host_error_name_required">請輸入名稱。</string>
+    <string name="ssh_host_error_name_invalid">名稱包含無效字元。</string>
+    <string name="ssh_host_error_destination_required">請輸入主機位址或 OpenSSH 設定別名。</string>
+    <string name="ssh_host_error_host_invalid">主機位址包含無效字元。</string>
+    <string name="ssh_host_error_alias_invalid">別名必須是單一詞彙，不能包含空格、控制字元或 shell 分隔符號，也不能以「-」開頭。</string>
+    <string name="ssh_host_error_port_invalid">連接埠必須介於 1 到 65535 之間。</string>
+    <string name="ssh_host_error_username_invalid">使用者名稱包含無效字元。</string>
+    <string name="ssh_host_error_identity_file_invalid">金鑰路徑包含無效字元。</string>
+    <string name="ssh_host_error_save_failed">無法儲存主機。</string>
+    <string name="ssh_host_not_found">找不到已儲存的主機。</string>
+
+</resources>
