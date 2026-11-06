@@ -39,7 +39,11 @@ jobs:
         env:
           CONTAINER_NAME: termux-ywpc-${{ matrix.arch }}-${{ github.run_id }}
           TERMUX_DOCKER_EXEC_EXTRA_ARGS: --env TERMUX_PKG_MAKE_PROCESSES=4
-        run: ./scripts/run-docker.sh ./scripts/build-bootstraps.sh -f --add openssh --architectures "${{ matrix.arch }}"
+        run: |
+          ./scripts/run-docker.sh ./scripts/build-bootstraps.sh -f --add openssh --architectures "${{ matrix.arch }}"
+          docker cp "$CONTAINER_NAME:/tmp/bootstrap-${{ matrix.arch }}.zip" \
+            "bootstrap-${{ matrix.arch }}.zip"
+          test -s "bootstrap-${{ matrix.arch }}.zip"
 
       - name: Upload Bootstrap archive
         uses: actions/upload-artifact@v6
